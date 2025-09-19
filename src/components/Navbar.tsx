@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuSeparator, 
-  DropdownMenuTrigger 
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
-import { 
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -16,25 +16,40 @@ import {
 } from "@/components/ui/select";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { 
-  User, 
-  Settings, 
-  LogOut, 
-  Home, 
+import {
+  User,
+  Settings,
+  LogOut,
+  Home,
   GraduationCap,
   Languages,
   Trophy,
   Award
 } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
+import { useNavigate } from "react-router-dom";
 
 interface NavbarProps {
-  userData?: any;
-  onLogout?: () => void;
   onNavigate?: (path: string) => void;
 }
 
-const Navbar = ({ userData, onLogout, onNavigate }: NavbarProps) => {
+const Navbar = ({ onNavigate }: NavbarProps) => {
   const [language, setLanguage] = useState("en");
+  const { user, userData, signOut } = useAuth();
+  const navigate = useNavigate();
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/');
+  };
+
+  const handleNavigation = (path: string) => {
+    if (onNavigate) {
+      onNavigate(path);
+    } else {
+      navigate(path);
+    }
+  };
 
   const languages = [
     { value: "en", label: "English" },
@@ -61,19 +76,19 @@ const Navbar = ({ userData, onLogout, onNavigate }: NavbarProps) => {
 
           {/* Navigation Links */}
           <div className="hidden md:flex items-center gap-4">
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               size="sm"
-              onClick={() => onNavigate?.('/')}
+              onClick={() => handleNavigation('/')}
               className="flex items-center gap-2"
             >
               <Home className="h-4 w-4" />
               Home
             </Button>
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               size="sm"
-              onClick={() => onNavigate?.('/learning')}
+              onClick={() => handleNavigation('/learning')}
               className="flex items-center gap-2"
             >
               <GraduationCap className="h-4 w-4" />
@@ -99,48 +114,53 @@ const Navbar = ({ userData, onLogout, onNavigate }: NavbarProps) => {
             </Select>
 
             {/* User Menu */}
-            {userData ? (
+            {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-10 px-2 flex items-center gap-2">
                     <Avatar className="h-8 w-8">
                       <AvatarFallback className="bg-primary text-primary-foreground">
-                        {userData.name?.charAt(0)?.toUpperCase() || 'U'}
+                        {userData?.displayName?.charAt(0)?.toUpperCase() ||
+                          user.email?.charAt(0)?.toUpperCase() || 'U'}
                       </AvatarFallback>
                     </Avatar>
                     <div className="hidden md:flex flex-col items-start">
-                      <span className="text-sm font-medium">{userData.name}</span>
+                      <span className="text-sm font-medium">
+                        {userData?.displayName || user.displayName || 'User'}
+                      </span>
                       <Badge variant="secondary" className="text-xs h-4">
-                        {userData.userType === 'employee' ? 'Municipal' : 'Citizen'}
+                        {userData?.role === 'municipal-employee' ? 'Municipal' : 'Citizen'}
                       </Badge>
                     </div>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-56" align="end">
                   <div className="px-2 py-1.5">
-                    <p className="text-sm font-medium">{userData.name}</p>
-                    <p className="text-xs text-muted-foreground">{userData.email}</p>
+                    <p className="text-sm font-medium">
+                      {userData?.displayName || user.displayName || 'User'}
+                    </p>
+                    <p className="text-xs text-muted-foreground">{user.email}</p>
                   </div>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => onNavigate?.('/profile')}>
+                  <DropdownMenuItem onClick={() => handleNavigation('/profile')}>
                     <User className="mr-2 h-4 w-4" />
                     Profile
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => onNavigate?.('/certifications')}>
+                  <DropdownMenuItem onClick={() => handleNavigation('/certifications')}>
                     <Award className="mr-2 h-4 w-4" />
                     Certifications
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => onNavigate?.('/rewards')}>
+                  <DropdownMenuItem onClick={() => handleNavigation('/rewards')}>
                     <Trophy className="mr-2 h-4 w-4" />
                     Rewards
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => onNavigate?.('/settings')}>
+                  <DropdownMenuItem onClick={() => handleNavigation('/settings')}>
                     <Settings className="mr-2 h-4 w-4" />
                     Settings
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem 
-                    onClick={onLogout}
+                  <DropdownMenuItem
+                    onClick={handleSignOut}
                     className="text-destructive"
                   >
                     <LogOut className="mr-2 h-4 w-4" />
@@ -149,9 +169,14 @@ const Navbar = ({ userData, onLogout, onNavigate }: NavbarProps) => {
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <Button variant="outline" size="sm">
-                Sign In
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button variant="ghost" size="sm" onClick={() => handleNavigation('/login')}>
+                  Sign In
+                </Button>
+                <Button size="sm" className="bg-primary hover:bg-primary/90" onClick={() => handleNavigation('/signup')}>
+                  Sign Up
+                </Button>
+              </div>
             )}
           </div>
         </div>

@@ -7,10 +7,13 @@ import Index from "./pages/Index";
 import Learning from "./pages/Learning";
 import UserTypeSelection from "./pages/UserTypeSelection";
 import NotFound from "./pages/NotFound";
+import Login from "./pages/Login";
+import Signup from "./pages/Signup";
 import { EcoEscapeRoom } from "./components/EcoEscapeRoom";
 import { WasteBasicsModule } from "./components/learning/WasteBasicsModule";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
+import { ProtectedRoute } from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient();
 
@@ -25,9 +28,32 @@ const App = () => (
           <Route path="/learning" element={<Learning />} />
           <Route path="/learning/waste-basics" element={<WasteBasicsModule />} />
           <Route path="/get-started" element={<UserTypeSelection />} />
+          <Route
+            path="/login"
+            element={
+              <ProtectedRoute requireAuth={false}>
+                <Login />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/signup"
+            element={
+              <ProtectedRoute requireAuth={false}>
+                <Signup />
+              </ProtectedRoute>
+            }
+          />
           <Route path="/eco-escape-room" element={<EcoEscapeRoom />} />
           <Route path="/auth" element={<Auth />} />
-          <Route path="/dashboard" element={<Dashboard/>} />
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute requireAuth={true}>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

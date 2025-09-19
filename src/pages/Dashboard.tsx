@@ -4,14 +4,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  Award, 
-  MapPin, 
-  QrCode, 
-  Calendar, 
-  TrendingUp, 
-  Users, 
-  Truck, 
+import {
+  Award,
+  MapPin,
+  QrCode,
+  Calendar,
+  TrendingUp,
+  Users,
+  Truck,
   Camera,
   Trophy,
   Leaf,
@@ -24,7 +24,9 @@ import {
   BarChart3
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 import { Link } from "react-router-dom";
+import Navbar from "@/components/Navbar";
 import QRScanner from "@/components/QRScanner";
 import WasteTracking from "@/components/WasteTracking";
 import ReportingSystem from "@/components/ReportingSystem";
@@ -32,16 +34,16 @@ import EWasteDay from "@/components/EWasteDay";
 import WasteChatbot from "@/components/WasteChatbot";
 
 interface DashboardProps {
-  userData: any;
   onNavigate?: (path: string) => void;
 }
 
-const Dashboard = ({ userData, onNavigate }: DashboardProps) => {
+const Dashboard = ({ onNavigate }: DashboardProps) => {
+  const { user, userData } = useAuth();
   const [currentPoints, setCurrentPoints] = useState(1250);
   const [streak, setStreak] = useState(7);
   const [weeklyGoal] = useState(500);
   const [weeklyProgress] = useState(350);
-  
+
   // Modal states for quick actions
   const [showQRScanner, setShowQRScanner] = useState(false);
   const [showWasteTracking, setShowWasteTracking] = useState(false);
@@ -63,7 +65,7 @@ const Dashboard = ({ userData, onNavigate }: DashboardProps) => {
     { rank: 1, name: "Priya Sharma", points: 2850, district: "Mumbai" },
     { rank: 2, name: "Raj Patel", points: 2720, district: "Delhi" },
     { rank: 3, name: "Anita Kumar", points: 2650, district: "Bangalore" },
-    { rank: 4, name: userData?.name || "You", points: currentPoints, district: "Your District", isUser: true },
+    { rank: 4, name: userData?.displayName || "You", points: currentPoints, district: "Your District", isUser: true },
     { rank: 5, name: "Vikram Singh", points: 2420, district: "Chennai" }
   ];
 
@@ -107,27 +109,27 @@ const Dashboard = ({ userData, onNavigate }: DashboardProps) => {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Navbar */}
+      <Navbar onNavigate={onNavigate} />
+
       {/* Header with improved gradient */}
       <div className="bg-gradient-to-br from-primary via-primary-glow to-accent text-white p-6 relative overflow-hidden">
         {/* Background decoration */}
         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent"></div>
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-32 translate-x-32"></div>
         <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full translate-y-24 -translate-x-24"></div>
-        
+
         <div className="container mx-auto relative z-10">
           <div className="flex items-center justify-between mb-6">
             <div className="animate-fade-in">
               <h1 className="text-2xl md:text-3xl font-bold mb-2">
-                Welcome back, {userData?.name}! 👋
+                Welcome back, {userData?.displayName || 'User'}! 👋
               </h1>
               <p className="text-white/90 flex items-center">
                 <Badge variant="secondary" className="bg-white/20 text-white border-white/30 mr-3">
-                  {userData?.userType === 'employee' ? 'Municipal Employee' : 
-                   userData?.userType === 'waste-collector' ? 'Waste Collector' :
-                   userData?.userType === 'student' ? 'Student' : 
-                   userData?.userType === 'community-leader' ? 'Community Leader' : 'Eco Citizen'}
+                  {userData?.role === 'municipal-employee' ? 'Municipal Employee' : 'Citizen'}
                 </Badge>
-                ID: {userData?.userId}
+                ID: {userData?.uid}
               </p>
             </div>
             <div className="text-right animate-scale-in">
@@ -149,7 +151,7 @@ const Dashboard = ({ userData, onNavigate }: DashboardProps) => {
                 <div className="text-white/90 text-sm">Total Points</div>
               </CardContent>
             </Card>
-            
+
             <Card className="bg-white/15 backdrop-blur-sm border-white/30 hover:bg-white/20 transition-all duration-300">
               <CardContent className="p-4 text-center">
                 <div className="flex items-center justify-center mb-2">
@@ -159,7 +161,7 @@ const Dashboard = ({ userData, onNavigate }: DashboardProps) => {
                 <div className="text-white/90 text-sm">Day Streak</div>
               </CardContent>
             </Card>
-            
+
             <Card className="bg-white/15 backdrop-blur-sm border-white/30 hover:bg-white/20 transition-all duration-300">
               <CardContent className="p-4 text-center">
                 <div className="flex items-center justify-center mb-2">
@@ -169,12 +171,12 @@ const Dashboard = ({ userData, onNavigate }: DashboardProps) => {
                 <div className="text-white/90 text-sm">District Rank</div>
               </CardContent>
             </Card>
-            
+
             <Card className="bg-white/15 backdrop-blur-sm border-white/30 hover:bg-white/20 transition-all duration-300">
               <CardContent className="p-4 text-center">
                 <div className="flex items-center justify-center mb-2">
                   <Target className="h-5 w-5 mr-2" />
-                  <div className="text-2xl font-bold text-white">{Math.round((weeklyProgress/weeklyGoal)*100)}%</div>
+                  <div className="text-2xl font-bold text-white">{Math.round((weeklyProgress / weeklyGoal) * 100)}%</div>
                 </div>
                 <div className="text-white/90 text-sm">Weekly Goal</div>
               </CardContent>
@@ -201,12 +203,11 @@ const Dashboard = ({ userData, onNavigate }: DashboardProps) => {
                 {quickActions.map((action, index) => (
                   <Card key={index} className="cursor-pointer hover:shadow-eco transition-all duration-300 hover:scale-105">
                     <CardContent className="p-6 text-center" onClick={action.action}>
-                      <div className={`mx-auto mb-4 p-3 rounded-full w-16 h-16 flex items-center justify-center transition-all duration-300 hover:scale-110 ${
-                        action.color === 'eco' ? 'bg-primary/10 text-primary hover:bg-primary/20' :
+                      <div className={`mx-auto mb-4 p-3 rounded-full w-16 h-16 flex items-center justify-center transition-all duration-300 hover:scale-110 ${action.color === 'eco' ? 'bg-primary/10 text-primary hover:bg-primary/20' :
                         action.color === 'sky' ? 'bg-accent/10 text-accent hover:bg-accent/20' :
-                        action.color === 'warning' ? 'bg-warning/10 text-warning hover:bg-warning/20' :
-                        'bg-success/10 text-success hover:bg-success/20'
-                      }`}>
+                          action.color === 'warning' ? 'bg-warning/10 text-warning hover:bg-warning/20' :
+                            'bg-success/10 text-success hover:bg-success/20'
+                        }`}>
                         {action.icon}
                       </div>
                       <h3 className="font-semibold mb-2">{action.title}</h3>
@@ -234,10 +235,10 @@ const Dashboard = ({ userData, onNavigate }: DashboardProps) => {
                     <span>Progress</span>
                     <span>{weeklyProgress} / {weeklyGoal} points</span>
                   </div>
-                  <Progress value={(weeklyProgress/weeklyGoal)*100} className="progress-bar" />
+                  <Progress value={(weeklyProgress / weeklyGoal) * 100} className="progress-bar" />
                   <div className="flex justify-between text-xs text-muted-foreground">
                     <span>This week</span>
-                    <span>{Math.round((weeklyProgress/weeklyGoal)*100)}% complete</span>
+                    <span>{Math.round((weeklyProgress / weeklyGoal) * 100)}% complete</span>
                   </div>
                 </div>
               </CardContent>
@@ -254,12 +255,10 @@ const Dashboard = ({ userData, onNavigate }: DashboardProps) => {
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {achievements.map((achievement, index) => (
-                    <div key={index} className={`flex items-center space-x-3 p-3 rounded-lg ${
-                      achievement.earned ? 'bg-success/10 text-success' : 'bg-muted/30 text-muted-foreground'
-                    }`}>
-                      <div className={`p-2 rounded-full ${
-                        achievement.earned ? 'bg-success/20' : 'bg-muted'
+                    <div key={index} className={`flex items-center space-x-3 p-3 rounded-lg ${achievement.earned ? 'bg-success/10 text-success' : 'bg-muted/30 text-muted-foreground'
                       }`}>
+                      <div className={`p-2 rounded-full ${achievement.earned ? 'bg-success/20' : 'bg-muted'
+                        }`}>
                         {achievement.icon}
                       </div>
                       <div>
@@ -327,12 +326,11 @@ const Dashboard = ({ userData, onNavigate }: DashboardProps) => {
                       <div key={index} className="p-4 bg-muted/30 rounded-lg border-l-4 border-primary hover:bg-muted/50 transition-colors">
                         <div className="flex items-center justify-between mb-2">
                           <h3 className="font-semibold text-sm">{event.title}</h3>
-                          <Badge variant="outline" className={`text-xs ${
-                            event.type === 'Cleanup' ? 'border-success text-success' :
+                          <Badge variant="outline" className={`text-xs ${event.type === 'Cleanup' ? 'border-success text-success' :
                             event.type === 'Workshop' ? 'border-warning text-warning' :
-                            event.type === 'Collection' ? 'border-accent text-accent' :
-                            'border-primary text-primary'
-                          }`}>
+                              event.type === 'Collection' ? 'border-accent text-accent' :
+                                'border-primary text-primary'
+                            }`}>
                             {event.type}
                           </Badge>
                         </div>
@@ -391,7 +389,7 @@ const Dashboard = ({ userData, onNavigate }: DashboardProps) => {
                         ))}
                       </div>
                     </div>
-                    
+
                     <div className="space-y-2">
                       <label className="text-sm font-medium">Quick Templates</label>
                       <div className="space-y-2">
@@ -466,7 +464,7 @@ const Dashboard = ({ userData, onNavigate }: DashboardProps) => {
                 Access comprehensive waste management education and interactive games
               </p>
             </div>
-            
+
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               <Card className="hover:shadow-lg transition-shadow">
                 <CardHeader>
@@ -532,7 +530,7 @@ const Dashboard = ({ userData, onNavigate }: DashboardProps) => {
                 <CardContent>
                   <div className="space-y-3">
                     <Badge variant="outline" className="w-full justify-center">
-                      {userData?.userType === 'employee' ? 'Municipal Employee' : 'Eco Citizen'} Courses
+                      {userData?.role === 'municipal-employee' ? 'Municipal Employee' : 'Eco Citizen'} Courses
                     </Badge>
                     <Button asChild variant="secondary" className="w-full">
                       <Link to="/learning">Explore Courses</Link>
@@ -587,16 +585,14 @@ const Dashboard = ({ userData, onNavigate }: DashboardProps) => {
               <CardContent>
                 <div className="space-y-3">
                   {leaderboardData.map((user, index) => (
-                    <div key={index} className={`flex items-center justify-between p-4 rounded-lg ${
-                      user.isUser ? 'bg-primary/10 border border-primary/30' : 'bg-muted/30'
-                    }`}>
+                    <div key={index} className={`flex items-center justify-between p-4 rounded-lg ${user.isUser ? 'bg-primary/10 border border-primary/30' : 'bg-muted/30'
+                      }`}>
                       <div className="flex items-center space-x-3">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold ${
-                          user.rank === 1 ? 'bg-yellow-500 text-white' :
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold ${user.rank === 1 ? 'bg-yellow-500 text-white' :
                           user.rank === 2 ? 'bg-gray-400 text-white' :
-                          user.rank === 3 ? 'bg-amber-600 text-white' :
-                          'bg-muted text-muted-foreground'
-                        }`}>
+                            user.rank === 3 ? 'bg-amber-600 text-white' :
+                              'bg-muted text-muted-foreground'
+                          }`}>
                           {user.rank}
                         </div>
                         <div>
@@ -649,8 +645,8 @@ const Dashboard = ({ userData, onNavigate }: DashboardProps) => {
                         <p className="text-sm text-muted-foreground mb-4">{reward.description}</p>
                         <div className="flex items-center justify-between">
                           <span className="font-bold text-primary">{reward.points} pts</span>
-                          <Button 
-                            variant={currentPoints >= reward.points ? "eco" : "outline"} 
+                          <Button
+                            variant={currentPoints >= reward.points ? "eco" : "outline"}
                             size="sm"
                             disabled={currentPoints < reward.points}
                           >
@@ -666,30 +662,30 @@ const Dashboard = ({ userData, onNavigate }: DashboardProps) => {
           </TabsContent>
         </Tabs>
       </div>
-      
+
       {/* Modal Components */}
-      <QRScanner 
-        isOpen={showQRScanner} 
+      <QRScanner
+        isOpen={showQRScanner}
         onClose={() => setShowQRScanner(false)}
         onPointsEarned={handlePointsEarned}
       />
-      
-      <WasteTracking 
-        isOpen={showWasteTracking} 
+
+      <WasteTracking
+        isOpen={showWasteTracking}
         onClose={() => setShowWasteTracking(false)}
       />
-      
-      <ReportingSystem 
-        isOpen={showReporting} 
+
+      <ReportingSystem
+        isOpen={showReporting}
         onClose={() => setShowReporting(false)}
         onPointsEarned={handlePointsEarned}
       />
-      
-      <EWasteDay 
-        isOpen={showEWasteDay} 
+
+      <EWasteDay
+        isOpen={showEWasteDay}
         onClose={() => setShowEWasteDay(false)}
       />
-      
+
       <WasteChatbot />
     </div>
   );

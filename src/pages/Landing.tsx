@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Users, Recycle, TrendingUp, Award, Shield, Smartphone } from "lucide-react";
 import { Link } from "react-router-dom";
+import Navbar from "@/components/Navbar";
 import heroImage from "@/assets/hero-bg.jpg";
 
 interface LandingProps {
@@ -44,10 +45,13 @@ const Landing = ({ onUserTypeSelect }: LandingProps) => {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Navbar */}
+      <Navbar />
+
       {/* Hero Section */}
       <section className="relative overflow-hidden text-white">
         {/* Background Image */}
-        <div 
+        <div
           className="absolute inset-0 z-0"
           style={{
             backgroundImage: `url(${heroImage})`,
@@ -67,9 +71,9 @@ const Landing = ({ onUserTypeSelect }: LandingProps) => {
               Waste Management
             </span>
           </h1>
-          
+
           <p className="mb-8 text-lg md:text-2xl text-white/90 max-w-3xl mx-auto animate-fade-in">
-            Join the nationwide digital platform tackling India's waste crisis through 
+            Join the nationwide digital platform tackling India's waste crisis through
             education, gamification, and transparency. Every person matters.
           </p>
 
@@ -95,8 +99,8 @@ const Landing = ({ onUserTypeSelect }: LandingProps) => {
               Join millions of Indians in creating a cleaner, greener future. Choose your role and start your journey today.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button 
-                size="lg" 
+              <Button
+                size="lg"
                 className="bg-primary hover:bg-primary/90"
                 onClick={() => onUserTypeSelect("waste-collector")}
               >
