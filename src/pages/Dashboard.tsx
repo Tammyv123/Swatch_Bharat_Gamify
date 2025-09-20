@@ -21,7 +21,9 @@ import {
   CheckCircle,
   GraduationCap,
   Gamepad2,
-  BarChart3
+  BarChart3,
+  BookOpen,
+  AlertTriangle
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
@@ -39,7 +41,7 @@ interface DashboardProps {
 
 const Dashboard = ({ onNavigate }: DashboardProps) => {
   const { user, userData } = useAuth();
-  const [currentPoints, setCurrentPoints] = useState(1250);
+  const [currentPoints, setCurrentPoints] = useState(0);
   const [streak, setStreak] = useState(7);
   const [weeklyGoal] = useState(500);
   const [weeklyProgress] = useState(350);
@@ -217,6 +219,74 @@ const Dashboard = ({ onNavigate }: DashboardProps) => {
                 ))}
               </div>
             </div>
+
+            {/* Points Legend */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Trophy className="mr-2 h-5 w-5" />
+                  Points Legend
+                </CardTitle>
+                <CardDescription>
+                  Learn how to earn points and level up your eco-impact
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                      <div className="flex items-center">
+                        <QrCode className="h-5 w-5 mr-3 text-primary" />
+                        <span className="font-medium">QR Code Scan</span>
+                      </div>
+                      <span className="text-primary font-bold">+25 pts</span>
+                    </div>
+                    <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                      <div className="flex items-center">
+                        <BookOpen className="h-5 w-5 mr-3 text-blue-500" />
+                        <span className="font-medium">Complete Training</span>
+                      </div>
+                      <span className="text-blue-500 font-bold">+100 pts</span>
+                    </div>
+                    <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                      <div className="flex items-center">
+                        <AlertTriangle className="h-5 w-5 mr-3 text-orange-500" />
+                        <span className="font-medium">Report Issue</span>
+                      </div>
+                      <span className="text-orange-500 font-bold">+50 pts</span>
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                      <div className="flex items-center">
+                        <Calendar className="h-5 w-5 mr-3 text-green-500" />
+                        <span className="font-medium">E-Waste Collection</span>
+                      </div>
+                      <span className="text-green-500 font-bold">+75 pts</span>
+                    </div>
+                    <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                      <div className="flex items-center">
+                        <Zap className="h-5 w-5 mr-3 text-yellow-500" />
+                        <span className="font-medium">Daily Streak Bonus</span>
+                      </div>
+                      <span className="text-yellow-500 font-bold">+10 pts</span>
+                    </div>
+                    <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                      <div className="flex items-center">
+                        <Users className="h-5 w-5 mr-3 text-purple-500" />
+                        <span className="font-medium">Community Challenge</span>
+                      </div>
+                      <span className="text-purple-500 font-bold">+200 pts</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-4 p-3 bg-primary/10 rounded-lg">
+                  <p className="text-sm text-muted-foreground">
+                    💡 <strong>Pro Tip:</strong> Scan QR codes at waste disposal points to verify proper segregation and earn instant points!
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
 
             {/* Weekly Progress */}
             <Card>
