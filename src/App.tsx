@@ -18,7 +18,7 @@ import Dashboard from "./pages/Dashboard";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 
 // ✅ import your landing page
-import Landing from "./pages/landing";
+import Landing from "./pages/Landing";
 
 // ✅ import landing-details pages
 import CommunityEngagement from "./pages/landing-details/CommunityEngagement";
