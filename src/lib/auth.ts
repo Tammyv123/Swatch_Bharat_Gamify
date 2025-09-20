@@ -20,6 +20,7 @@ export interface UserData {
     displayName: string;
     role: 'citizen' | 'municipal-employee';
     coins?: number;
+    points?: number;
     employeeId?: string;
     department?: string;
     firstName?: string;
@@ -48,6 +49,7 @@ export const signUpWithEmail = async (
             displayName: userData.displayName,
             role: userData.role,
             coins: 0, // Initialize coins to 0
+            points: 0, // Initialize points to 0
             ...(userData.employeeId && { employeeId: userData.employeeId }),
             ...(userData.department && { department: userData.department }),
             ...(userData.firstName && { firstName: userData.firstName }),

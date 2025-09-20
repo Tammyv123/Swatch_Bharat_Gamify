@@ -34,7 +34,7 @@ import WasteTracking from "@/components/WasteTracking";
 import ReportingSystem from "@/components/ReportingSystem";
 import EWasteDay from "@/components/EWasteDay";
 import WasteChatbot from "@/components/WasteChatbot";
-import { completeReferralReward, getUserCoins, updateUserCoins } from "@/services/referral";
+import { completeReferralReward, getUserCoins, updateUserCoinsAndPoints, getUserPoints } from "@/services/referral";
 import { testReferralReward, listAllReferralCodes, createTestReferralCode } from "@/services/test-referral";
 import { initializeDatabase, checkDatabaseStatus } from "@/services/database-init";
 
@@ -49,31 +49,53 @@ const Dashboard = ({ onNavigate }: DashboardProps) => {
   const [streak, setStreak] = useState(7);
   const [weeklyGoal] = useState(500);
   const [weeklyProgress] = useState(350);
+  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
-  // Load user coins on component mount
-  useEffect(() => {
-    const loadUserCoins = async () => {
-      try {
-        if (user) {
-          const userCoins = await getUserCoins(user.uid);
-          setCoins(userCoins);
-        }
-      } catch (error) {
-        console.error("Error loading user coins:", error);
-      }
-    };
+  // Load user data from Firebase
+  const loadUserData = async () => {
+    try {
+      if (user) {
+        setIsLoading(true);
 
-    if (user) {
-      loadUserCoins();
+        // Load coins and points from Firebase
+        const [userCoins, userPoints] = await Promise.all([
+          getUserCoins(user.uid),
+          getUserPoints(user.uid)
+        ]);
+
+        console.log("Loaded from Firebase - Coins:", userCoins, "Points:", userPoints);
+        setCoins(userCoins);
+        setCurrentPoints(userPoints);
+
+        console.log("Dashboard data loaded successfully");
+      }
+    } catch (error) {
+      console.error("Error loading user data:", error);
+      toast({
+        title: "Loading Error",
+        description: "Failed to load your data. Please refresh the page.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
     }
-  }, [user]);
+  };
+
+  // Load user data on component mount
+  useEffect(() => {
+    if (user) {
+      loadUserData();
+    }
+  }, [user, toast]);
 
   const loadUserCoins = async () => {
     try {
       if (user) {
         const userCoins = await getUserCoins(user.uid);
+        console.log("Refreshed coins from Firebase:", userCoins);
         setCoins(userCoins);
+        // Don't override points here - they should be loaded separately
       }
     } catch (error) {
       console.error("Error loading user coins:", error);
@@ -88,25 +110,37 @@ const Dashboard = ({ onNavigate }: DashboardProps) => {
 
   const handlePointsEarned = async (points: number) => {
     try {
-      // Add points to current total
+      console.log(`Starting handlePointsEarned: ${points} points for user:`, user?.uid);
+
+      if (!user?.uid) {
+        throw new Error("No user ID available");
+      }
+
+      // Update local state immediately for better UX
       setCurrentPoints(prev => prev + points);
+      setCoins(prev => prev + points);
 
-      // Update coins in Firebase
-      if (user) {
-        await updateUserCoins(user.uid, points);
-        setCoins(prev => prev + points);
+      // Update both coins and points in Firebase
+      console.log("Updating coins and points in Firebase...");
+      await updateUserCoinsAndPoints(user.uid, points);
+      console.log("Firebase update successful!");
 
-        // Check and process referral rewards (only for first QR scan)
-        const referralCompleted = await completeReferralReward(user.uid);
-        if (referralCompleted) {
-          toast({
-            title: "Referral Bonus!",
-            description: "You and your referrer each earned 10 extra coins!",
-            duration: 5000,
-          });
-          // Reload coins to get the referral bonus
-          await loadUserCoins();
-        }
+      // Check and process referral rewards (only for first QR scan)
+      console.log("Checking for referral rewards...");
+      const referralCompleted = await completeReferralReward(user.uid);
+      if (referralCompleted) {
+        console.log("Referral reward completed!");
+        toast({
+          title: "Referral Bonus!",
+          description: "You and your referrer each earned 10 extra coins!",
+          duration: 5000,
+        });
+        // Reload data to get the referral bonus
+        await loadUserData();
+      } else {
+        console.log("No referral reward available");
+        // Verify the update by reloading from Firebase
+        await loadUserData();
       }
 
       toast({
@@ -115,11 +149,53 @@ const Dashboard = ({ onNavigate }: DashboardProps) => {
       });
     } catch (error) {
       console.error("Error processing points:", error);
+
+      // Revert local state if Firebase update failed
+      setCurrentPoints(prev => prev - points);
+      setCoins(prev => prev - points);
+
+      // Show detailed error message
+      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+
       toast({
         title: "Error",
-        description: "Failed to update points. Please try again.",
+        description: `Failed to update points: ${errorMessage}`,
         variant: "destructive"
       });
+    }
+  };
+
+  // Manual sync function to reload data from Firebase
+  const syncWithFirebase = async () => {
+    if (user) {
+      console.log("Manually syncing with Firebase...");
+      await loadUserData(); // Load both coins and points
+      toast({
+        title: "Synced!",
+        description: "Data refreshed from database.",
+      });
+    }
+  };
+
+  // Add test coins for debugging
+  const addTestCoins = async () => {
+    if (user) {
+      try {
+        console.log("Adding 25 test coins and points...");
+        await updateUserCoinsAndPoints(user.uid, 25);
+        await loadUserData(); // Reload all data
+        toast({
+          title: "Test Coins Added!",
+          description: "Added 25 test coins and points to your account.",
+        });
+      } catch (error) {
+        console.error("Error adding test coins:", error);
+        toast({
+          title: "Error",
+          description: "Failed to add test coins.",
+          variant: "destructive"
+        });
+      }
     }
   };
 
@@ -277,7 +353,9 @@ const Dashboard = ({ onNavigate }: DashboardProps) => {
               <CardContent className="p-4 text-center">
                 <div className="flex items-center justify-center mb-2">
                   <Trophy className="h-5 w-5 mr-2" />
-                  <div className="text-2xl font-bold text-white">{currentPoints}</div>
+                  <div className="text-2xl font-bold text-white">
+                    {isLoading ? "..." : currentPoints}
+                  </div>
                 </div>
                 <div className="text-white/90 text-sm">Total Points</div>
               </CardContent>
@@ -287,7 +365,9 @@ const Dashboard = ({ onNavigate }: DashboardProps) => {
               <CardContent className="p-4 text-center">
                 <div className="flex items-center justify-center mb-2">
                   <Zap className="h-5 w-5 mr-2 text-yellow-300" />
-                  <div className="text-2xl font-bold text-white">{coins}</div>
+                  <div className="text-2xl font-bold text-white">
+                    {isLoading ? "..." : coins}
+                  </div>
                 </div>
                 <div className="text-white/90 text-sm">Coins Earned</div>
               </CardContent>
@@ -407,9 +487,26 @@ const Dashboard = ({ onNavigate }: DashboardProps) => {
                     >
                       Test Reward
                     </Button>
+                    <Button
+                      onClick={syncWithFirebase}
+                      variant="outline"
+                      size="sm"
+                      className="border-blue-300 text-blue-700 hover:bg-blue-100"
+                    >
+                      Sync Coins
+                    </Button>
+                    <Button
+                      onClick={addTestCoins}
+                      variant="outline"
+                      size="sm"
+                      className="border-green-300 text-green-700 hover:bg-green-100"
+                    >
+                      +25 Coins
+                    </Button>
                   </div>
                   <p className="text-xs text-orange-600 mt-2">
                     Debug tools for testing referral functionality. Click "Initialize DB" first if database is empty.
+                    Use "Sync Coins" to refresh coin count from Firebase. Use "+25 Coins" to add test coins.
                   </p>
                 </CardContent>
               </Card>

@@ -331,10 +331,13 @@ export const getUserCoins = async (userId: string): Promise<number> => {
         const userSnap = await getDoc(userRef);
 
         if (userSnap.exists()) {
-            return userSnap.data().coins || 0;
+            const coins = userSnap.data().coins || 0;
+            console.log(`Retrieved ${coins} coins for user ${userId}`);
+            return coins;
+        } else {
+            console.log(`User document doesn't exist for ${userId}, returning 0 coins`);
+            return 0;
         }
-
-        return 0;
     } catch (error) {
         console.error("Error getting user coins:", error);
 
@@ -367,5 +370,98 @@ export const updateUserCoins = async (userId: string, coinsToAdd: number): Promi
         }
 
         throw new Error("Failed to update coins");
+    }
+};
+
+// Update user's points balance
+export const updateUserPoints = async (userId: string, pointsToAdd: number): Promise<void> => {
+    try {
+        await ensureFirestoreOnline();
+
+        const userRef = doc(db, "users", userId);
+        await updateDoc(userRef, {
+            points: increment(pointsToAdd)
+        });
+        console.log(`Added ${pointsToAdd} points to user ${userId}`);
+    } catch (error) {
+        console.error("Error updating user points:", error);
+
+        // Don't throw error if offline, just log it
+        if (error.code === 'failed-precondition' || error.message.includes('offline')) {
+            console.log("Firebase is offline, points update will be synced when online");
+            return;
+        }
+
+        throw new Error("Failed to update points");
+    }
+};
+
+// Update both coins and points for a user
+export const updateUserCoinsAndPoints = async (userId: string, amount: number): Promise<void> => {
+    try {
+        await ensureFirestoreOnline();
+
+        const userRef = doc(db, "users", userId);
+
+        // First, check if user document exists
+        const userSnap = await getDoc(userRef);
+
+        if (!userSnap.exists()) {
+            console.log("User document doesn't exist, creating it...");
+            // Create user document with initial values
+            await setDoc(userRef, {
+                uid: userId,
+                coins: amount,
+                points: amount,
+                createdAt: new Date().toISOString()
+            });
+            console.log(`Created user document with ${amount} coins and points`);
+        } else {
+            // Update existing document
+            await updateDoc(userRef, {
+                coins: increment(amount),
+                points: increment(amount)
+            });
+            console.log(`Added ${amount} coins and points to user ${userId}`);
+        }
+    } catch (error) {
+        console.error("Error updating user coins and points:", error);
+
+        // Don't throw error if offline, just log it
+        if (error.code === 'failed-precondition' || error.message.includes('offline')) {
+            console.log("Firebase is offline, update will be synced when online");
+            return;
+        }
+
+        throw new Error(`Failed to update coins and points: ${error.message}`);
+    }
+};
+
+// Get user's points balance
+export const getUserPoints = async (userId: string): Promise<number> => {
+    try {
+        await ensureFirestoreOnline();
+
+        const userRef = doc(db, "users", userId);
+        const userSnap = await getDoc(userRef);
+
+        if (userSnap.exists()) {
+            const points = userSnap.data().points || 0;
+            console.log(`Retrieved ${points} points for user ${userId}`);
+            return points;
+        } else {
+            console.log(`User document doesn't exist for ${userId}, returning 0 points`);
+            return 0;
+        }
+    } catch (error) {
+        console.error("Error getting user points:", error);
+
+        // Return 0 if offline
+        if (error.code === 'failed-precondition' || error.message.includes('offline')) {
+            console.log("Firebase is offline, returning 0 points");
+            return 0;
+        }
+
+        return 0;
     }
 };
