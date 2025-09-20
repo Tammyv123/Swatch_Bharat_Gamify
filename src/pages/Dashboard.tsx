@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -34,7 +34,8 @@ import WasteTracking from "@/components/WasteTracking";
 import ReportingSystem from "@/components/ReportingSystem";
 import EWasteDay from "@/components/EWasteDay";
 import WasteChatbot from "@/components/WasteChatbot";
-import { completeReferralReward, getUserCoins, updateUserCoinsAndPoints, getUserPoints } from "@/services/referral";
+import CelebrationModal from "@/components/CelebrationModal";
+import { completeReferralReward, getUserCoins, updateUserCoinsAndPoints, getUserPoints, spendCoins } from "@/services/referral";
 import { testReferralReward, listAllReferralCodes, createTestReferralCode } from "@/services/test-referral";
 import { initializeDatabase, checkDatabaseStatus } from "@/services/database-init";
 
@@ -53,7 +54,7 @@ const Dashboard = ({ onNavigate }: DashboardProps) => {
   const { toast } = useToast();
 
   // Load user data from Firebase
-  const loadUserData = async () => {
+  const loadUserData = useCallback(async () => {
     try {
       if (user) {
         setIsLoading(true);
@@ -69,25 +70,49 @@ const Dashboard = ({ onNavigate }: DashboardProps) => {
         setCurrentPoints(userPoints);
 
         console.log("Dashboard data loaded successfully");
+        console.log("Current points state after setting:", userPoints);
+        console.log("Current coins state after setting:", userCoins);
       }
     } catch (error) {
       console.error("Error loading user data:", error);
+
+      // Handle specific Firebase errors
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const isFirebaseError = errorMessage.includes('FIRESTORE') ||
+        errorMessage.includes('INTERNAL ASSERTION FAILED') ||
+        errorMessage.includes('Unexpected state');
+
+      let displayMessage = "Failed to load your data. Please refresh the page.";
+      let shouldRefresh = false;
+
+      if (isFirebaseError) {
+        displayMessage = "Database connection issue detected. The page will refresh automatically.";
+        shouldRefresh = true;
+      }
+
       toast({
         title: "Loading Error",
-        description: "Failed to load your data. Please refresh the page.",
+        description: displayMessage,
         variant: "destructive"
       });
+
+      // Auto-refresh for Firebase internal errors
+      if (shouldRefresh) {
+        setTimeout(() => {
+          window.location.reload();
+        }, 3000);
+      }
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user, toast]);
 
   // Load user data on component mount
   useEffect(() => {
     if (user) {
       loadUserData();
     }
-  }, [user, toast]);
+  }, [user, loadUserData]);
 
   const loadUserCoins = async () => {
     try {
@@ -107,6 +132,14 @@ const Dashboard = ({ onNavigate }: DashboardProps) => {
   const [showWasteTracking, setShowWasteTracking] = useState(false);
   const [showReporting, setShowReporting] = useState(false);
   const [showEWasteDay, setShowEWasteDay] = useState(false);
+  const [activeTab, setActiveTab] = useState("overview");
+
+  // Celebration modal state
+  const [showCelebration, setShowCelebration] = useState(false);
+  const [celebrationData, setCelebrationData] = useState({
+    rewardTitle: "",
+    coinsSpent: 0
+  });
 
   const handlePointsEarned = async (points: number) => {
     try {
@@ -199,6 +232,28 @@ const Dashboard = ({ onNavigate }: DashboardProps) => {
     }
   };
 
+  // Test points retrieval specifically
+  const testPointsRetrieval = async () => {
+    if (user) {
+      try {
+        console.log("Testing points retrieval...");
+        const points = await getUserPoints(user.uid);
+        console.log("Points retrieval test result:", points);
+        toast({
+          title: "Points Test",
+          description: `Retrieved ${points} points from database.`,
+        });
+      } catch (error) {
+        console.error("Error testing points retrieval:", error);
+        toast({
+          title: "Points Test Failed",
+          description: "Failed to retrieve points from database.",
+          variant: "destructive"
+        });
+      }
+    }
+  };
+
   // Test function for referral rewards (for debugging)
   const testReferralRewardFunction = async () => {
     if (user) {
@@ -261,6 +316,81 @@ const Dashboard = ({ onNavigate }: DashboardProps) => {
     });
   };
 
+  // Handle reward redemption
+  const handleRewardRedemption = async (rewardTitle: string, coinsRequired: number) => {
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "Please log in to redeem rewards.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      // Check if user has enough coins
+      if (coins < coinsRequired) {
+        toast({
+          title: "Insufficient Coins",
+          description: `You need ${coinsRequired} coins but only have ${coins} coins.`,
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Spend coins
+      const success = await spendCoins(user.uid, coinsRequired);
+
+      if (success) {
+        // Update local state immediately
+        setCoins(prev => prev - coinsRequired);
+
+        // Reload data from Firebase to confirm
+        await loadUserData();
+
+        // Show celebration modal instead of toast
+        setCelebrationData({
+          rewardTitle: rewardTitle,
+          coinsSpent: coinsRequired
+        });
+        setShowCelebration(true);
+      } else {
+        toast({
+          title: "Redemption Failed",
+          description: "Could not process redemption. Please try again.",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error("Error redeeming reward:", error);
+
+      // Revert local state changes if they were made
+      setCoins(prev => prev + coinsRequired);
+
+      // Handle specific Firebase errors
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const isFirebaseError = errorMessage.includes('FIRESTORE') ||
+        errorMessage.includes('INTERNAL ASSERTION FAILED') ||
+        errorMessage.includes('Unexpected state');
+
+      let displayMessage = "Failed to process redemption. Please try again.";
+
+      if (isFirebaseError) {
+        displayMessage = "Database connection issue. Please refresh the page and try again.";
+      } else if (errorMessage.includes('Insufficient coins')) {
+        displayMessage = "You don't have enough coins for this reward.";
+      } else if (errorMessage.includes('offline')) {
+        displayMessage = "You're offline. Please check your connection and try again.";
+      }
+
+      toast({
+        title: "Redemption Error",
+        description: displayMessage,
+        variant: "destructive"
+      });
+    }
+  };
+
   const recentActivities = [
     { type: "QR Scan", points: 25, time: "2 hours ago", description: "Scanned waste bin at Park Street" },
     { type: "Training", points: 100, time: "1 day ago", description: "Completed Advanced Composting module" },
@@ -290,6 +420,13 @@ const Dashboard = ({ onNavigate }: DashboardProps) => {
       icon: <Truck className="h-6 w-6" />,
       color: "sky",
       action: () => setShowWasteTracking(true)
+    },
+    {
+      title: "Redeem Rewards",
+      description: "Use coins for benefits",
+      icon: <Award className="h-6 w-6" />,
+      color: "success",
+      action: () => setActiveTab("rewards")
     },
     {
       title: "Report Issue",
@@ -407,7 +544,7 @@ const Dashboard = ({ onNavigate }: DashboardProps) => {
       </div>
 
       <div className="container mx-auto p-6">
-        <Tabs defaultValue="overview" className="space-y-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="activities">Activities</TabsTrigger>
@@ -503,10 +640,19 @@ const Dashboard = ({ onNavigate }: DashboardProps) => {
                     >
                       +25 Coins
                     </Button>
+                    <Button
+                      onClick={testPointsRetrieval}
+                      variant="outline"
+                      size="sm"
+                      className="border-purple-300 text-purple-700 hover:bg-purple-100"
+                    >
+                      Test Points
+                    </Button>
                   </div>
                   <p className="text-xs text-orange-600 mt-2">
                     Debug tools for testing referral functionality. Click "Initialize DB" first if database is empty.
                     Use "Sync Coins" to refresh coin count from Firebase. Use "+25 Coins" to add test coins.
+                    Use "Test Points" to check points retrieval from database.
                   </p>
                 </CardContent>
               </Card>
@@ -983,17 +1129,17 @@ const Dashboard = ({ onNavigate }: DashboardProps) => {
                   Redeem Rewards
                 </CardTitle>
                 <CardDescription>
-                  Use your {currentPoints} points for amazing benefits
+                  Use your {coins} coins for amazing benefits
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {[
-                    { title: "Metro Discount", points: 500, description: "₹50 off on metro travel", type: "Transport" },
-                    { title: "Movie Ticket", points: 800, description: "Free movie ticket", type: "Entertainment" },
-                    { title: "Utility Bill", points: 1000, description: "₹100 off electricity bill", type: "Utility" },
-                    { title: "Eco Kit", points: 1200, description: "Home composting kit", type: "Product" },
-                    { title: "Plant Sapling", points: 300, description: "Free plant for your home", type: "Environment" },
+                    { title: "Metro Discount", points: 10, description: "₹50 off on metro travel", type: "Transport" },
+                    { title: "Movie Ticket", points: 8, description: "Free movie ticket", type: "Entertainment" },
+                    { title: "Utility Bill", points: 12, description: "₹100 off electricity bill", type: "Utility" },
+                    { title: "Eco Kit", points: 13, description: "Home composting kit", type: "Product" },
+                    { title: "Plant Sapling", points: 3, description: "Free plant for your home", type: "Environment" },
                     { title: "Shopping Voucher", points: 1500, description: "₹200 shopping voucher", type: "Shopping" }
                   ].map((reward, index) => (
                     <Card key={index} className="hover:shadow-eco transition-all duration-300">
@@ -1004,13 +1150,14 @@ const Dashboard = ({ onNavigate }: DashboardProps) => {
                         <h3 className="font-semibold mb-2">{reward.title}</h3>
                         <p className="text-sm text-muted-foreground mb-4">{reward.description}</p>
                         <div className="flex items-center justify-between">
-                          <span className="font-bold text-primary">{reward.points} pts</span>
+                          <span className="font-bold text-primary">{reward.points} coins</span>
                           <Button
-                            variant={currentPoints >= reward.points ? "eco" : "outline"}
+                            variant={coins >= reward.points ? "eco" : "outline"}
                             size="sm"
-                            disabled={currentPoints < reward.points}
+                            disabled={coins < reward.points}
+                            onClick={() => handleRewardRedemption(reward.title, reward.points)}
                           >
-                            {currentPoints >= reward.points ? "Redeem" : "Not enough"}
+                            {coins >= reward.points ? "Redeem" : "Not enough"}
                           </Button>
                         </div>
                       </CardContent>
@@ -1044,6 +1191,13 @@ const Dashboard = ({ onNavigate }: DashboardProps) => {
       <EWasteDay
         isOpen={showEWasteDay}
         onClose={() => setShowEWasteDay(false)}
+      />
+
+      <CelebrationModal
+        isOpen={showCelebration}
+        onClose={() => setShowCelebration(false)}
+        rewardTitle={celebrationData.rewardTitle}
+        coinsSpent={celebrationData.coinsSpent}
       />
 
       <WasteChatbot />

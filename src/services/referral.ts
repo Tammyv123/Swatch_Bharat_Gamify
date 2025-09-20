@@ -10,18 +10,50 @@ import {
     increment,
     writeBatch,
     enableNetwork,
-    disableNetwork
+    disableNetwork,
+    connectFirestoreEmulator
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
-// Helper function to ensure Firestore is online
+// Track network state to avoid concurrent enableNetwork calls
+let isNetworkEnabled = false;
+let networkPromise: Promise<void> | null = null;
+
+// Helper function to ensure Firestore is online with better error handling
 const ensureFirestoreOnline = async () => {
-    try {
-        await enableNetwork(db);
-        console.log('Firestore network enabled');
-    } catch (error) {
-        console.warn('Network already enabled or failed to enable:', error);
+    if (isNetworkEnabled) {
+        return; // Already enabled
     }
+
+    if (networkPromise) {
+        return networkPromise; // Wait for pending enable operation
+    }
+
+    networkPromise = (async () => {
+        try {
+            await enableNetwork(db);
+            isNetworkEnabled = true;
+            console.log('Firestore network enabled successfully');
+        } catch (error: unknown) {
+            // Only log as warning if it's a "already enabled" error
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            const errorCode = error && typeof error === 'object' && 'code' in error ? error.code : null;
+
+            if (errorCode === 'failed-precondition' ||
+                errorMessage.includes('already enabled') ||
+                errorMessage.includes('Network is already enabled')) {
+                isNetworkEnabled = true;
+                console.log('Firestore network was already enabled');
+            } else {
+                console.error('Failed to enable Firestore network:', error);
+                throw error;
+            }
+        } finally {
+            networkPromise = null;
+        }
+    })();
+
+    return networkPromise;
 }; export interface ReferralData {
     userId: string;
     referralCode: string;
@@ -438,6 +470,7 @@ export const updateUserCoinsAndPoints = async (userId: string, amount: number): 
 };
 
 // Get user's points balance
+// Update user's points balance
 export const getUserPoints = async (userId: string): Promise<number> => {
     try {
         await ensureFirestoreOnline();
@@ -446,7 +479,9 @@ export const getUserPoints = async (userId: string): Promise<number> => {
         const userSnap = await getDoc(userRef);
 
         if (userSnap.exists()) {
-            const points = userSnap.data().points || 0;
+            const userData = userSnap.data();
+            console.log(`User document data for ${userId}:`, userData);
+            const points = userData.points || 0;
             console.log(`Retrieved ${points} points for user ${userId}`);
             return points;
         } else {
@@ -456,12 +491,77 @@ export const getUserPoints = async (userId: string): Promise<number> => {
     } catch (error) {
         console.error("Error getting user points:", error);
 
-        // Return 0 if offline
-        if (error.code === 'failed-precondition' || error.message.includes('offline')) {
+        // Handle error codes more specifically
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        const errorCode = error && typeof error === 'object' && 'code' in error ? error.code : null;
+
+        if (errorCode === 'failed-precondition' ||
+            errorCode === 'unavailable' ||
+            errorMessage.includes('offline')) {
             console.log("Firebase is offline, returning 0 points");
             return 0;
         }
 
         return 0;
+    }
+};
+
+// Spend coins for rewards (reduce coin balance)
+export const spendCoins = async (userId: string, coinsToSpend: number): Promise<boolean> => {
+    try {
+        await ensureFirestoreOnline();
+
+        const userRef = doc(db, "users", userId);
+
+        // Use a retry mechanism for better reliability
+        let retries = 3;
+        while (retries > 0) {
+            try {
+                const userSnap = await getDoc(userRef);
+
+                if (!userSnap.exists()) {
+                    throw new Error("User document not found");
+                }
+
+                const currentCoins = userSnap.data().coins || 0;
+
+                if (currentCoins < coinsToSpend) {
+                    throw new Error("Insufficient coins");
+                }
+
+                // Use atomic operation to deduct coins
+                await updateDoc(userRef, {
+                    coins: increment(-coinsToSpend)
+                });
+
+                console.log(`Successfully spent ${coinsToSpend} coins for user ${userId}`);
+                return true;
+            } catch (error) {
+                retries--;
+                if (retries === 0) {
+                    throw error;
+                }
+                console.warn(`Retry spending coins, attempts left: ${retries}`);
+                // Wait a bit before retrying
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
+        }
+
+        return false;
+    } catch (error) {
+        console.error("Error spending coins:", error);
+
+        // Don't throw error if offline, just return false
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        const errorCode = error && typeof error === 'object' && 'code' in error ? error.code : null;
+
+        if (errorCode === 'failed-precondition' ||
+            errorCode === 'unavailable' ||
+            errorMessage.includes('offline')) {
+            console.log("Firebase is offline, coin spending will be synced when online");
+            return false;
+        }
+
+        throw error;
     }
 };
