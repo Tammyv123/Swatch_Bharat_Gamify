@@ -68,6 +68,19 @@ const Training = ({ userData, onTrainingComplete }: TrainingProps) => {
     }
   ];
 
+  const currentLevelData = levels.find(l => l.id === currentLevel);
+
+  // 👇 Auto start video module when opening level 1
+  useEffect(() => {
+    if (currentLevel === 1 && currentModule === null) {
+      const firstVideoIndex = currentLevelData?.modules.findIndex(m => m.type === "video");
+      if (firstVideoIndex !== -1) {
+        setCurrentModule(firstVideoIndex);
+        setProgress(0);
+      }
+    }
+  }, [currentLevel]);
+
   useEffect(() => {
     const timer = setInterval(() => {
       setProgress(prev => {
@@ -86,11 +99,8 @@ const Training = ({ userData, onTrainingComplete }: TrainingProps) => {
     const module = currentLevelData?.modules[moduleIndex];
     
     if (module?.type === "video") {
-      // Show video module
       setCurrentModule(moduleIndex);
       setProgress(0);
-      
-      // Simulate video completion
       setTimeout(() => {
         setCurrentModule(null);
         setProgress(100);
@@ -100,14 +110,10 @@ const Training = ({ userData, onTrainingComplete }: TrainingProps) => {
         });
       }, 3000);
     } else if (module?.type === "quiz") {
-      // Show segregation quiz
       setShowSegregationQuiz(true);
     } else {
-      // Regular module
       setCurrentModule(moduleIndex);
       setProgress(0);
-      
-      // Simulate module completion after some time
       setTimeout(() => {
         setCurrentModule(null);
         setProgress(100);
@@ -132,13 +138,12 @@ const Training = ({ userData, onTrainingComplete }: TrainingProps) => {
   };
 
   const handleQuizSubmit = () => {
-    const score = Math.floor(Math.random() * 30) + 70; // Random score between 70-100
+    const score = Math.floor(Math.random() * 30) + 70;
     setQuizScore(score);
     
     if (score >= 70) {
       const newCompletedLevels = [...completedLevels, currentLevel];
       setCompletedLevels(newCompletedLevels);
-      
       toast({
         title: "Level Completed!",
         description: `Congratulations! You scored ${score}% and passed Level ${currentLevel}.`,
@@ -151,7 +156,6 @@ const Training = ({ userData, onTrainingComplete }: TrainingProps) => {
           setShowQuiz(false);
         }, 2000);
       } else {
-        // All levels completed
         setTimeout(() => {
           const updatedUserData = {
             ...userData,
@@ -173,7 +177,6 @@ const Training = ({ userData, onTrainingComplete }: TrainingProps) => {
     }
   };
 
-  const currentLevelData = levels.find(l => l.id === currentLevel);
   const overallProgress = ((completedLevels.length + (currentModule !== null ? 0.5 : 0)) / 3) * 100;
 
   if (showSegregationQuiz) {
@@ -192,46 +195,28 @@ const Training = ({ userData, onTrainingComplete }: TrainingProps) => {
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <Card className="w-full max-w-2xl shadow-eco">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl font-bold">
-              {module?.title}
-            </CardTitle>
+            <CardTitle className="text-2xl font-bold">{module?.title}</CardTitle>
             <CardDescription>
               Level {currentLevel} - Module {currentModule + 1}
             </CardDescription>
           </CardHeader>
           <CardContent className="text-center">
             <div className="mb-8">
-              <div className="mx-auto mb-6 p-6 bg-primary/10 rounded-full w-24 h-24 flex items-center justify-center">
-                {isVideoModule ? (
-                  <Video className="h-12 w-12 text-primary" />
-                ) : (
-                  <Play className="h-12 w-12 text-primary" />
-                )}
-              </div>
-              
-              {isVideoModule && progress < 100 ? (
-                <div className="mb-6">
-                  <video 
-                    className="w-full max-w-md mx-auto rounded-lg shadow-lg"
-                    controls
-                    poster="/videos/waste-management-module.mp4"
-                  >
-                    <source src="/videos/waste-management-module.mp4" type="video/mp4" />
-                    Your browser does not support the video tag.
-                  </video>
-                </div>
+              {isVideoModule ? (
+                <video 
+                  className="w-full max-w-md mx-auto rounded-lg shadow-lg"
+                  controls
+                  autoPlay
+                >
+                  <source src="/videos/waste-management-module.mp4" type="video/mp4" />
+                  Your browser does not support the video tag.
+                </video>
               ) : (
-                <p className="text-lg text-muted-foreground mb-6">
-                  {module?.content}
-                </p>
+                <p className="text-lg text-muted-foreground mb-6">{module?.content}</p>
               )}
-              
               <Progress value={progress} className="mb-4 progress-bar" />
-              <p className="text-sm text-muted-foreground">
-                Module Progress: {Math.round(progress)}%
-              </p>
+              <p className="text-sm text-muted-foreground">Module Progress: {Math.round(progress)}%</p>
             </div>
-            
             {progress === 100 && (
               <div className="animate-bounce-in">
                 <CheckCircle className="h-16 w-16 text-success mx-auto mb-4" />
@@ -249,9 +234,7 @@ const Training = ({ userData, onTrainingComplete }: TrainingProps) => {
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <Card className="w-full max-w-2xl shadow-eco">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl font-bold">
-              Level {currentLevel} Quiz
-            </CardTitle>
+            <CardTitle className="text-2xl font-bold">Level {currentLevel} Quiz</CardTitle>
             <CardDescription>
               Answer {currentLevelData?.quizQuestions} questions to complete this level
             </CardDescription>
@@ -259,47 +242,14 @@ const Training = ({ userData, onTrainingComplete }: TrainingProps) => {
           <CardContent className="text-center">
             {quizScore === null ? (
               <div>
-                <div className="mx-auto mb-6 p-6 bg-warning/10 rounded-full w-24 h-24 flex items-center justify-center">
-                  <Book className="h-12 w-12 text-warning" />
-                </div>
-                <p className="text-lg text-muted-foreground mb-8">
-                  Test your knowledge with {currentLevelData?.quizQuestions} multiple choice questions.
-                  You need 70% or higher to pass.
-                </p>
-                <Button 
-                  variant="eco" 
-                  size="lg" 
-                  onClick={handleQuizSubmit}
-                  className="animate-pulse"
-                >
+                <Button variant="eco" size="lg" onClick={handleQuizSubmit} className="animate-pulse">
                   Start Quiz
                 </Button>
               </div>
             ) : (
               <div className="animate-scale-in">
-                <div className="mx-auto mb-6 p-6 bg-success/10 rounded-full w-24 h-24 flex items-center justify-center">
-                  <Award className="h-12 w-12 text-success" />
-                </div>
-                <h3 className="text-2xl font-bold text-success mb-2">
-                  Congratulations!
-                </h3>
-                <p className="text-lg mb-4">
-                  You scored <span className="font-bold text-success">{quizScore}%</span>
-                </p>
-                {currentLevel === 3 ? (
-                  <div>
-                    <p className="text-lg text-muted-foreground mb-6">
-                      🎉 You've completed all training levels! Your User ID will be generated shortly.
-                    </p>
-                    <Badge variant="default" className="text-lg px-4 py-2">
-                      Training Complete
-                    </Badge>
-                  </div>
-                ) : (
-                  <p className="text-lg text-muted-foreground">
-                    Moving to Level {currentLevel + 1}...
-                  </p>
-                )}
+                <h3 className="text-2xl font-bold text-success mb-2">Congratulations!</h3>
+                <p className="text-lg mb-4">You scored <span className="font-bold text-success">{quizScore}%</span></p>
               </div>
             )}
           </CardContent>
@@ -313,26 +263,14 @@ const Training = ({ userData, onTrainingComplete }: TrainingProps) => {
       <div className="container mx-auto max-w-4xl">
         {/* Header */}
         <div className="mb-8 text-center">
-          <Badge variant="secondary" className="mb-4">
-            Mandatory Learning Journey
-          </Badge>
-          <h1 className="text-3xl md:text-4xl font-bold mb-4">
-            Welcome, {userData?.name}!
-          </h1>
+          <Badge variant="secondary" className="mb-4">Mandatory Learning Journey</Badge>
+          <h1 className="text-3xl md:text-4xl font-bold mb-4">Welcome, {userData?.name}!</h1>
           <p className="text-lg text-muted-foreground mb-6">
             Complete all 3 levels to get your unique User ID and access the full platform
           </p>
-          
-          {/* Overall Progress */}
           <div className="max-w-md mx-auto">
-            <div className="flex justify-between text-sm text-muted-foreground mb-2">
-              <span>Overall Progress</span>
-              <span>{Math.round(overallProgress)}%</span>
-            </div>
             <Progress value={overallProgress} className="mb-2 progress-bar" />
-            <p className="text-sm text-muted-foreground">
-              {completedLevels.length} of 3 levels completed
-            </p>
+            <p className="text-sm text-muted-foreground">{completedLevels.length} of 3 levels completed</p>
           </div>
         </div>
 
@@ -344,118 +282,14 @@ const Training = ({ userData, onTrainingComplete }: TrainingProps) => {
             const isLocked = level.id > currentLevel;
 
             return (
-              <Card 
-                key={level.id} 
-                className={`transition-all duration-300 ${
-                  isCompleted ? 'bg-success/5 border-success/30' : 
-                  isCurrent ? 'shadow-eco border-primary/30' : 
-                  'opacity-60'
-                }`}
-              >
+              <Card key={level.id} className={`${isCompleted ? 'bg-success/5 border-success/30' : isCurrent ? 'shadow-eco border-primary/30' : 'opacity-60'}`}>
                 <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      {isCompleted ? (
-                        <CheckCircle className="h-8 w-8 text-success" />
-                      ) : isCurrent ? (
-                        <Circle className="h-8 w-8 text-primary" />
-                      ) : (
-                        <Circle className="h-8 w-8 text-muted-foreground" />
-                      )}
-                      <div>
-                        <CardTitle className="text-xl">
-                          Level {level.id}: {level.title}
-                        </CardTitle>
-                        <CardDescription>{level.description}</CardDescription>
-                      </div>
-                    </div>
-                    {isCompleted && (
-                      <Badge variant="default" className="bg-success">
-                        Completed
-                      </Badge>
-                    )}
-                    {isLocked && (
-                      <Badge variant="secondary">
-                        Locked
-                      </Badge>
-                    )}
-                  </div>
+                  <CardTitle>Level {level.id}: {level.title}</CardTitle>
+                  <CardDescription>{level.description}</CardDescription>
                 </CardHeader>
-
-                {isCurrent && (
-                  <CardContent>
-                    <div className="space-y-4">
-                      <h4 className="font-semibold text-lg mb-4">Learning Modules</h4>
-                      
-                      {level.modules.map((module, index) => (
-                        <div key={index} className="flex items-center justify-between p-4 bg-muted/30 rounded-lg">
-                          <div className="flex items-center space-x-3">
-                            {module.type === "video" ? (
-                              <Video className="h-5 w-5 text-primary" />
-                            ) : module.type === "quiz" ? (
-                              <Book className="h-5 w-5 text-warning" />
-                            ) : (
-                              <Play className="h-5 w-5 text-primary" />
-                            )}
-                            <div>
-                              <p className="font-medium">{module.title}</p>
-                              <p className="text-sm text-muted-foreground">{module.content}</p>
-                            </div>
-                          </div>
-                          <div className="flex items-center space-x-3">
-                            <Badge variant="outline" className="text-xs">
-                              <Clock className="mr-1 h-3 w-3" />
-                              {module.duration}
-                            </Badge>
-                            <Button 
-                              variant={module.type === "quiz" ? "warning" : "eco"}
-                              size="sm"
-                              onClick={() => handleStartModule(index)}
-                            >
-                              {module.type === "video" ? "Watch" : module.type === "quiz" ? "Take Quiz" : "Start"}
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
-
-                      <div className="mt-6 pt-6 border-t">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <h4 className="font-semibold">Level Quiz</h4>
-                            <p className="text-sm text-muted-foreground">
-                              {level.quizQuestions} questions • 70% required to pass
-                            </p>
-                          </div>
-                          <Button 
-                            variant="nature" 
-                            size="lg"
-                            onClick={handleStartQuiz}
-                          >
-                            Take Quiz
-                            <ArrowRight className="ml-2 h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                )}
               </Card>
             );
           })}
-        </div>
-
-        {/* Footer Info */}
-        <div className="mt-8 text-center">
-          <Card className="bg-muted/30">
-            <CardContent className="p-6">
-              <h3 className="font-semibold text-lg mb-2">Why This Training Matters</h3>
-              <p className="text-muted-foreground">
-                This comprehensive training ensures every participant understands proper waste management 
-                practices, contributing to India's goal of 100% scientific waste treatment. Your participation 
-                makes a difference in building a cleaner, greener nation.
-              </p>
-            </CardContent>
-          </Card>
         </div>
       </div>
     </div>
