@@ -82,7 +82,7 @@ const Landing = ({ onUserTypeSelect }: LandingProps) => {
               <Link to="/get-started">Get Started</Link>
             </Button>
             <Button asChild variant="outline" size="lg" className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg">
-              <Link to="/learning">Explore Learning</Link>
+              <Link to="/learning/waste-sorting-game">Explore Learning</Link>
             </Button>
           </div>
         </div>
@@ -107,7 +107,7 @@ const Landing = ({ onUserTypeSelect }: LandingProps) => {
                 Get Started Now
               </Button>
               <Button asChild variant="outline" size="lg">
-                <Link to="/learning">Explore Learning</Link>
+                <Link to="/learning/waste-sorting-game">Explore Learning</Link>
               </Button>
             </div>
           </div>

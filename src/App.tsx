@@ -11,6 +11,7 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import { EcoEscapeRoom } from "./components/EcoEscapeRoom";
 import { WasteBasicsModule } from "./components/learning/WasteBasicsModule";
+import WasteSortingGame from "./components/WasteSortingGame";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import { ProtectedRoute } from "./components/ProtectedRoute";
@@ -27,6 +28,7 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/learning" element={<Learning />} />
           <Route path="/learning/waste-basics" element={<WasteBasicsModule />} />
+          <Route path="/learning/waste-sorting-game" element={<WasteSortingGame />} />
           <Route path="/get-started" element={<UserTypeSelection />} />
           <Route
             path="/login"

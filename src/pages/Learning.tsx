@@ -13,17 +13,17 @@ import introVideo from "@/assets/into.mp4";
 
 
 // LocalStorage Hook
-const useLocalStorage = (key: string, initialValue: any) => {
-  const [storedValue, setStoredValue] = useState(() => {
+function useLocalStorage<T>(key: string, initialValue: T) {
+  const [storedValue, setStoredValue] = useState<T>(() => {
     try {
       const item = window.localStorage.getItem(key);
-      return item ? JSON.parse(item) : initialValue;
+      return item ? JSON.parse(item) as T : initialValue;
     } catch (error) {
       return initialValue;
     }
   });
 
-  const setValue = (value: any) => {
+  const setValue = (value: T) => {
     try {
       setStoredValue(value);
       window.localStorage.setItem(key, JSON.stringify(value));
@@ -33,7 +33,7 @@ const useLocalStorage = (key: string, initialValue: any) => {
   };
 
   return [storedValue, setValue] as const;
-};
+}
 
 // Dummy training data
 const trainingLevels = [
@@ -90,7 +90,7 @@ const Learning = () => {
             <div className="flex items-center space-x-2">
               <Checkbox
                 checked={introWatched}
-                onCheckedChange={(val) => setIntroWatched(val)}
+                onCheckedChange={(val) => setIntroWatched(val === true)}
               />
               <label className="text-sm">Already Watched</label>
             </div>
