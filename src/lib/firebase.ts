@@ -1,7 +1,7 @@
 import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
-import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import { getAuth, connectAuthEmulator } from "firebase/auth";
+import { getFirestore, connectFirestoreEmulator, enableNetwork, disableNetwork } from "firebase/firestore";
 
 // Firebase configuration with fallback values
 const firebaseConfig = {
@@ -32,5 +32,10 @@ try {
 
 const auth = getAuth(app);
 const db = getFirestore(app);
+
+// Enable network to ensure Firestore is online
+enableNetwork(db).catch((error) => {
+    console.warn('Failed to enable Firestore network:', error);
+});
 
 export { app, analytics, auth, db };

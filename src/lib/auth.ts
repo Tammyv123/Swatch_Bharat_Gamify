@@ -19,6 +19,7 @@ export interface UserData {
     email: string;
     displayName: string;
     role: 'citizen' | 'municipal-employee';
+    coins?: number;
     employeeId?: string;
     department?: string;
     firstName?: string;
@@ -46,6 +47,7 @@ export const signUpWithEmail = async (
             email: user.email!,
             displayName: userData.displayName,
             role: userData.role,
+            coins: 0, // Initialize coins to 0
             ...(userData.employeeId && { employeeId: userData.employeeId }),
             ...(userData.department && { department: userData.department }),
             ...(userData.firstName && { firstName: userData.firstName }),

@@ -24,10 +24,12 @@ import {
   GraduationCap,
   Languages,
   Trophy,
-  Award
+  Award,
+  Gift
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useNavigate } from "react-router-dom";
+import ReferAndEarn from "./ReferAndEarn";
 
 interface NavbarProps {
   onNavigate?: (path: string) => void;
@@ -35,6 +37,7 @@ interface NavbarProps {
 
 const Navbar = ({ onNavigate }: NavbarProps) => {
   const [language, setLanguage] = useState("en");
+  const [showReferModal, setShowReferModal] = useState(false);
   const { user, userData, signOut } = useAuth();
   const navigate = useNavigate();
 
@@ -154,6 +157,10 @@ const Navbar = ({ onNavigate }: NavbarProps) => {
                     <Trophy className="mr-2 h-4 w-4" />
                     Rewards
                   </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setShowReferModal(true)}>
+                    <Gift className="mr-2 h-4 w-4" />
+                    Refer & Earn
+                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => handleNavigation('/settings')}>
                     <Settings className="mr-2 h-4 w-4" />
                     Settings
@@ -181,6 +188,12 @@ const Navbar = ({ onNavigate }: NavbarProps) => {
           </div>
         </div>
       </div>
+
+      {/* Refer and Earn Modal */}
+      <ReferAndEarn
+        isOpen={showReferModal}
+        onClose={() => setShowReferModal(false)}
+      />
     </nav>
   );
 };

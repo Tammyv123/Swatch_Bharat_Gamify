@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -6,13 +6,15 @@ import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Eye, EyeOff, Recycle, AlertCircle, Users, Building2, CheckCircle } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Eye, EyeOff, Recycle, AlertCircle, Users, Building2, CheckCircle, Gift } from "lucide-react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import { signUpWithEmail, signInWithGoogle } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
+import { validateReferralCode, processReferralSignup } from "@/services/referral";
 
 const Signup = () => {
+    const [searchParams] = useSearchParams();
     const [formData, setFormData] = useState({
         firstName: "",
         lastName: "",
@@ -22,12 +24,17 @@ const Signup = () => {
         role: "",
         employeeId: "",
         department: "",
+        referralCode: searchParams.get('ref') || "",
         agreeToTerms: false,
     });
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState("");
+    const [referralValidation, setReferralValidation] = useState<{
+        isValid: boolean;
+        message: string;
+    }>({ isValid: false, message: "" });
     const navigate = useNavigate();
     const { toast } = useToast();
 
@@ -47,6 +54,38 @@ const Signup = () => {
             features: ["Manage waste collection", "Monitor operations", "Generate reports", "Admin dashboard"]
         }
     ];
+
+    // Validate referral code when it changes
+    useEffect(() => {
+        const validateReferral = async () => {
+            if (formData.referralCode.trim()) {
+                try {
+                    const validation = await validateReferralCode(formData.referralCode);
+                    if (validation.isValid) {
+                        setReferralValidation({
+                            isValid: true,
+                            message: "Valid referral code! You'll both earn 10 coins."
+                        });
+                    } else {
+                        setReferralValidation({
+                            isValid: false,
+                            message: "Invalid referral code."
+                        });
+                    }
+                } catch (error) {
+                    setReferralValidation({
+                        isValid: false,
+                        message: "Could not validate referral code."
+                    });
+                }
+            } else {
+                setReferralValidation({ isValid: false, message: "" });
+            }
+        };
+
+        const debounceTimer = setTimeout(validateReferral, 500);
+        return () => clearTimeout(debounceTimer);
+    }, [formData.referralCode]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -105,11 +144,26 @@ const Signup = () => {
             }
 
             if (user) {
-                // Successfully signed up and logged in, redirect to dashboard
-                toast({
-                    title: "Welcome to Swachh Bharat!",
-                    description: "Your account has been created successfully.",
-                });
+                // Process referral if code was provided
+                if (formData.referralCode.trim()) {
+                    const referralProcessed = await processReferralSignup(user.uid, formData.referralCode);
+                    if (referralProcessed) {
+                        toast({
+                            title: "Welcome to Swachh Bharat!",
+                            description: "Account created successfully! Referral bonus will be awarded after your first QR scan.",
+                        });
+                    } else {
+                        toast({
+                            title: "Welcome to Swachh Bharat!",
+                            description: "Account created successfully, but there was an issue with the referral code.",
+                        });
+                    }
+                } else {
+                    toast({
+                        title: "Welcome to Swachh Bharat!",
+                        description: "Your account has been created successfully.",
+                    });
+                }
                 navigate('/dashboard');
             }
         } catch (err) {
@@ -184,6 +238,16 @@ const Signup = () => {
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
+                            {/* Referral Welcome Message */}
+                            {searchParams.get('ref') && (
+                                <Alert className="mb-6 bg-green-50 border-green-200">
+                                    <Gift className="h-4 w-4 text-green-600" />
+                                    <AlertDescription className="text-green-800">
+                                        🎉 You've been referred by a friend! Complete your signup and both of you will earn 10 coins.
+                                    </AlertDescription>
+                                </Alert>
+                            )}
+
                             <form onSubmit={handleSubmit} className="space-y-6">
                                 {error && (
                                     <Alert variant="destructive">
@@ -361,6 +425,30 @@ const Signup = () => {
                                             )}
                                         </Button>
                                     </div>
+                                </div>
+
+                                {/* Referral Code Field */}
+                                <div className="space-y-2">
+                                    <Label htmlFor="referralCode" className="flex items-center gap-2">
+                                        <Gift className="h-4 w-4 text-primary" />
+                                        Referral Code (Optional)
+                                    </Label>
+                                    <Input
+                                        id="referralCode"
+                                        name="referralCode"
+                                        placeholder="Enter referral code"
+                                        value={formData.referralCode}
+                                        onChange={handleInputChange}
+                                        className="h-11"
+                                    />
+                                    {referralValidation.message && (
+                                        <p className={`text-xs ${referralValidation.isValid
+                                            ? 'text-green-600'
+                                            : 'text-red-600'
+                                            }`}>
+                                            {referralValidation.message}
+                                        </p>
+                                    )}
                                 </div>
 
                                 {/* Terms and Conditions */}

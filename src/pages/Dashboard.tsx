@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -34,6 +34,9 @@ import WasteTracking from "@/components/WasteTracking";
 import ReportingSystem from "@/components/ReportingSystem";
 import EWasteDay from "@/components/EWasteDay";
 import WasteChatbot from "@/components/WasteChatbot";
+import { completeReferralReward, getUserCoins, updateUserCoins } from "@/services/referral";
+import { testReferralReward, listAllReferralCodes, createTestReferralCode } from "@/services/test-referral";
+import { initializeDatabase, checkDatabaseStatus } from "@/services/database-init";
 
 interface DashboardProps {
   onNavigate?: (path: string) => void;
@@ -42,9 +45,40 @@ interface DashboardProps {
 const Dashboard = ({ onNavigate }: DashboardProps) => {
   const { user, userData } = useAuth();
   const [currentPoints, setCurrentPoints] = useState(0);
+  const [coins, setCoins] = useState(0);
   const [streak, setStreak] = useState(7);
   const [weeklyGoal] = useState(500);
   const [weeklyProgress] = useState(350);
+  const { toast } = useToast();
+
+  // Load user coins on component mount
+  useEffect(() => {
+    const loadUserCoins = async () => {
+      try {
+        if (user) {
+          const userCoins = await getUserCoins(user.uid);
+          setCoins(userCoins);
+        }
+      } catch (error) {
+        console.error("Error loading user coins:", error);
+      }
+    };
+
+    if (user) {
+      loadUserCoins();
+    }
+  }, [user]);
+
+  const loadUserCoins = async () => {
+    try {
+      if (user) {
+        const userCoins = await getUserCoins(user.uid);
+        setCoins(userCoins);
+      }
+    } catch (error) {
+      console.error("Error loading user coins:", error);
+    }
+  };
 
   // Modal states for quick actions
   const [showQRScanner, setShowQRScanner] = useState(false);
@@ -52,8 +86,103 @@ const Dashboard = ({ onNavigate }: DashboardProps) => {
   const [showReporting, setShowReporting] = useState(false);
   const [showEWasteDay, setShowEWasteDay] = useState(false);
 
-  const handlePointsEarned = (points: number) => {
-    setCurrentPoints(prev => prev + points);
+  const handlePointsEarned = async (points: number) => {
+    try {
+      // Add points to current total
+      setCurrentPoints(prev => prev + points);
+
+      // Update coins in Firebase
+      if (user) {
+        await updateUserCoins(user.uid, points);
+        setCoins(prev => prev + points);
+
+        // Check and process referral rewards (only for first QR scan)
+        const referralCompleted = await completeReferralReward(user.uid);
+        if (referralCompleted) {
+          toast({
+            title: "Referral Bonus!",
+            description: "You and your referrer each earned 10 extra coins!",
+            duration: 5000,
+          });
+          // Reload coins to get the referral bonus
+          await loadUserCoins();
+        }
+      }
+
+      toast({
+        title: "Points Earned!",
+        description: `You earned ${points} points for this action.`,
+      });
+    } catch (error) {
+      console.error("Error processing points:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update points. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Test function for referral rewards (for debugging)
+  const testReferralRewardFunction = async () => {
+    if (user) {
+      const result = await testReferralReward(user.uid);
+      toast({
+        title: result ? "Test Successful" : "Test Failed",
+        description: result ? "Referral reward test completed" : "No pending referral found",
+      });
+    }
+  };
+
+  // Test function to list all referral codes
+  const listReferralCodes = async () => {
+    const count = await listAllReferralCodes();
+    toast({
+      title: "Referral Codes Listed",
+      description: `Found ${count} referral codes in database. Check console for details.`,
+    });
+  };
+
+  // Test function to create the TEMPOYNX referral code
+  const createTempReferralCode = async () => {
+    if (user) {
+      try {
+        await createTestReferralCode(user.uid, "TEMPOYNX");
+        toast({
+          title: "Test Referral Code Created",
+          description: "TEMPOYNX referral code has been created for testing.",
+        });
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to create test referral code.",
+          variant: "destructive"
+        });
+      }
+    }
+  };
+
+  // Initialize database with basic structure
+  const initializeDB = async () => {
+    if (user) {
+      const result = await initializeDatabase(user.uid, user.email || "");
+      toast({
+        title: result.success ? "Database Initialized" : "Initialization Failed",
+        description: result.success
+          ? `Database set up with referral code: ${result.referralCode}`
+          : `Error: ${result.error}`,
+        variant: result.success ? "default" : "destructive"
+      });
+    }
+  };
+
+  // Check database status
+  const checkDBStatus = async () => {
+    const status = await checkDatabaseStatus();
+    toast({
+      title: "Database Status",
+      description: `Users: ${status.users}, Referrals: ${status.referrals}, Initialized: ${status.initialized}`,
+    });
   };
 
   const recentActivities = [
@@ -158,6 +287,16 @@ const Dashboard = ({ onNavigate }: DashboardProps) => {
               <CardContent className="p-4 text-center">
                 <div className="flex items-center justify-center mb-2">
                   <Zap className="h-5 w-5 mr-2 text-yellow-300" />
+                  <div className="text-2xl font-bold text-white">{coins}</div>
+                </div>
+                <div className="text-white/90 text-sm">Coins Earned</div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-white/15 backdrop-blur-sm border-white/30 hover:bg-white/20 transition-all duration-300">
+              <CardContent className="p-4 text-center">
+                <div className="flex items-center justify-center mb-2">
+                  <Target className="h-5 w-5 mr-2" />
                   <div className="text-2xl font-bold text-white">{streak}</div>
                 </div>
                 <div className="text-white/90 text-sm">Day Streak</div>
@@ -220,7 +359,61 @@ const Dashboard = ({ onNavigate }: DashboardProps) => {
               </div>
             </div>
 
-            {/* Points Legend */}
+            {/* Test Referral Button (for debugging) */}
+            {process.env.NODE_ENV === 'development' && (
+              <Card className="border-dashed border-2 border-orange-300 bg-orange-50">
+                <CardContent className="p-4">
+                  <h3 className="font-semibold text-orange-800 mb-3">Debug Referral System</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-3">
+                    <Button
+                      onClick={checkDBStatus}
+                      variant="outline"
+                      size="sm"
+                      className="border-blue-300 text-blue-700 hover:bg-blue-100"
+                    >
+                      Check DB Status
+                    </Button>
+                    <Button
+                      onClick={initializeDB}
+                      variant="outline"
+                      size="sm"
+                      className="border-green-300 text-green-700 hover:bg-green-100"
+                    >
+                      Initialize DB
+                    </Button>
+                    <Button
+                      onClick={listReferralCodes}
+                      variant="outline"
+                      size="sm"
+                      className="border-orange-300 text-orange-700 hover:bg-orange-100"
+                    >
+                      List Codes
+                    </Button>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <Button
+                      onClick={createTempReferralCode}
+                      variant="outline"
+                      size="sm"
+                      className="border-orange-300 text-orange-700 hover:bg-orange-100"
+                    >
+                      Create TEMPOYNX
+                    </Button>
+                    <Button
+                      onClick={testReferralRewardFunction}
+                      variant="outline"
+                      size="sm"
+                      className="border-orange-300 text-orange-700 hover:bg-orange-100"
+                    >
+                      Test Reward
+                    </Button>
+                  </div>
+                  <p className="text-xs text-orange-600 mt-2">
+                    Debug tools for testing referral functionality. Click "Initialize DB" first if database is empty.
+                  </p>
+                </CardContent>
+              </Card>
+            )}            {/* Points Legend */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
