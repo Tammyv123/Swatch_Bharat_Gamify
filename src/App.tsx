@@ -29,6 +29,7 @@ import Settings from "./components/settings";
 // Learning Pages
 import Learning from "./pages/Learning";
 import { WasteBasicsModule } from "./components/learning/WasteBasicsModule";
+import { WasteAdvancedModule } from "./components/learning/WasteAdvanceModule";
 import WasteSortingGame from "./components/WasteSortingGame";
 //importing games
 import WasteGame from "@/components/wastegame";
@@ -83,6 +84,7 @@ const App = () => (
             {/* Learning Pages */}
             <Route path="/learning" element={<Learning />} />
             <Route path="/learning/waste-basics" element={<WasteBasicsModule />} />
+            <Route path ="/learning/waste-advance" element={<WasteAdvancedModule />}/>
             <Route path="/learning/waste-sorting-game" element={<WasteSortingGame />} />
 
             {/* User Type & Auth */}
