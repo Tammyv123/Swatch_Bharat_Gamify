@@ -1,18 +1,21 @@
-import { EcoEscapeRoom} from "@/components/EcoEscapeRoom";
+import { EcoEscapeRoom } from "@/components/EcoEscapeRoom";
 import WasteSortingGame from "@/components/WasteSortingGame";
-
 import { WasteBasicsModule } from "@/components/learning/WasteBasicsModule";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import ManageWaste from "@/components/wastegame";
+import EcoSorterGame from "@/components/EcoSorterGame";  // ✅ Import new game
 
-const play = () => {
+const Play = () => {
   const navigate = useNavigate();
 
   const games = [
     { title: "Waste Basics Module", component: WasteBasicsModule },
     { title: "Waste Sorting Game", component: WasteSortingGame },
-    { title: "Eco Escape Room", component: EcoEscapeRoom }
+    { title: "Eco Escape Room", component: EcoEscapeRoom },
+    { title: "Eco CrossWord", component: ManageWaste },
+    { title: "Eco Sorter Training", component: EcoSorterGame }, // ✅ Added here
   ];
 
   return (
@@ -29,7 +32,15 @@ const play = () => {
               <CardTitle>{game.title}</CardTitle>
             </CardHeader>
             <CardContent>
-              <Button onClick={() => navigate(`/learning/${game.title.replace(/\s+/g, "-").toLowerCase()}`)}>
+              <Button
+                onClick={() => {
+                  if (game.title === "Eco Escape Room") navigate("/eco-escape-room");
+                  else if (game.title === "Waste Sorting Game") navigate("/learning/waste-sorting-game");
+                  else if (game.title === "Waste Basics Module") navigate("/learning/waste-basics");
+                  else if (game.title === "Eco CrossWord ") navigate("/ManageWaste");
+                  else if (game.title === "Eco Sorter Training") navigate("/eco-sorter-game"); // ✅ new route
+                }}
+              >
                 Play Now
               </Button>
             </CardContent>
@@ -40,4 +51,4 @@ const play = () => {
   );
 };
 
-export default play;
+export default Play;

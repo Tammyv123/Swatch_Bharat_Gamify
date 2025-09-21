@@ -30,6 +30,9 @@ import Settings from "./components/settings";
 import Learning from "./pages/Learning";
 import { WasteBasicsModule } from "./components/learning/WasteBasicsModule";
 import WasteSortingGame from "./components/WasteSortingGame";
+//importing games
+import WasteGame from "@/components/wastegame";
+import EcoSorterGame from "@/components/EcoSorterGame";
 
 // Auth & Protected
 import UserTypeSelection from "./pages/UserTypeSelection";
@@ -89,7 +92,9 @@ const App = () => (
             <Route path="/eco-escape-room" element={<EcoEscapeRoom />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/dashboard" element={<ProtectedRoute requireAuth={true}><Dashboard /></ProtectedRoute>} />
-
+            
+            <Route path="/ManageWaste" element={<WasteGame />} />
+            <Route path="/eco-sorter-game" element={<EcoSorterGame />} />
             {/* Catch All */}
             <Route path="*" element={<NotFound />} />
           </Route>
