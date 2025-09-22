@@ -78,7 +78,7 @@ export const WasteAdvancedModule = () => {
         ],
         quiz: {
           question: "Which method produces biogas?",
-          options: ["Vermicomposting", "Anaerobic Digestion", "Open dumping", "Incineration"],
+          options: ["Vermicomposting", "Anaerobic Digestionn", "Open dumping", "Incineration"],
           correct: 1
         }
       }
