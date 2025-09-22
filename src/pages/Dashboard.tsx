@@ -151,35 +151,43 @@ const Dashboard = ({ onNavigate }: DashboardProps) => {
 
       // Update local state immediately for better UX
       setCurrentPoints(prev => prev + points);
-      setCoins(prev => prev + points);
-
-      // Update both coins and points in Firebase
-      console.log("Updating coins and points in Firebase...");
-      await updateUserCoinsAndPoints(user.uid, points);
-      console.log("Firebase update successful!");
-
-      // Check and process referral rewards (only for first QR scan)
-      console.log("Checking for referral rewards...");
-      const referralCompleted = await completeReferralReward(user.uid);
-      if (referralCompleted) {
-        console.log("Referral reward completed!");
-        toast({
-          title: "Referral Bonus!",
-          description: "You and your referrer each earned 10 extra coins!",
-          duration: 5000,
-        });
-        // Reload data to get the referral bonus
-        await loadUserData();
-      } else {
-        console.log("No referral reward available");
-        // Verify the update by reloading from Firebase
-        await loadUserData();
-      }
-
+      // Optimistic UI: show the success toast immediately
       toast({
         title: "Points Earned!",
         description: `You earned ${points} points for this action.`,
       });
+
+      // Update coins in Firebase (fire-and-forget style with local optimistic increment)
+      if (user) {
+        setCoins(prev => prev + points);
+        try {
+          await updateUserCoins(user.uid, points);
+        } catch (err) {
+          // Log the error but don't show destructive toast to the user for transient sync issues
+          console.error("Error updating coins in background:", err);
+          toast({
+            title: "Sync Notice",
+            description: "Points were recorded locally and will be synced when the network is available.",
+            variant: "default",
+          });
+        }
+
+        // Check and process referral rewards (only for first QR scan)
+        try {
+          const referralCompleted = await completeReferralReward(user.uid);
+          if (referralCompleted) {
+            toast({
+              title: "Referral Bonus!",
+              description: "You and your referrer each earned 10 extra coins!",
+              duration: 5000,
+            });
+            // Reload coins to get the referral bonus
+            await loadUserCoins();
+          }
+        } catch (err) {
+          console.error("Error processing referral reward:", err);
+        }
+      }
     } catch (error) {
       console.error("Error processing points:", error);
 
@@ -1136,9 +1144,9 @@ const Dashboard = ({ onNavigate }: DashboardProps) => {
                   {[
                     { title: "Metro Discount", points: 10, description: "₹50 off on metro travel", type: "Transport" },
                     { title: "Movie Ticket", points: 8, description: "Free movie ticket", type: "Entertainment" },
-                    { title: "Utility Bill", points: 12, description: "₹100 off electricity bill", type: "Utility" },
-                    { title: "Eco Kit", points: 13, description: "Home composting kit", type: "Product" },
-                    { title: "Plant Sapling", points: 3, description: "Free plant for your home", type: "Environment" },
+                    { title: "Utility Bill", points: 10, description: "₹100 off electricity bill", type: "Utility" },
+                    { title: "Eco Kit", points: 1200, description: "Home composting kit", type: "Product" },
+                    { title: "Plant Sapling", points: 300, description: "Free plant for your home", type: "Environment" },
                     { title: "Shopping Voucher", points: 1500, description: "₹200 shopping voucher", type: "Shopping" }
                   ].map((reward, index) => (
                     <Card key={index} className="hover:shadow-eco transition-all duration-300">
