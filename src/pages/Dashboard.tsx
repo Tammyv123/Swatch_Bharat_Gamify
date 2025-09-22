@@ -38,6 +38,8 @@ import CelebrationModal from "@/components/CelebrationModal";
 import { completeReferralReward, getUserCoins, updateUserCoinsAndPoints, getUserPoints, spendCoins } from "@/services/referral";
 import { testReferralReward, listAllReferralCodes, createTestReferralCode } from "@/services/test-referral";
 import { initializeDatabase, checkDatabaseStatus } from "@/services/database-init";
+import { updateUserCoins } from "@/lib/updateUserCoins";
+import { toast } from "@/components/ui/use-toast"; 
 
 interface DashboardProps {
   onNavigate?: (path: string) => void;

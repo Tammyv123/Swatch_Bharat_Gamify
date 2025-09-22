@@ -7,6 +7,7 @@ type WasteItem = {
 };
 
 const initialItems: WasteItem[] = [
+
   { id: 1, emoji: "🍎", type: "organic" },
   { id: 2, emoji: "🥤", type: "recyclable" },
   { id: 3, emoji: "💡", type: "hazardous" },
