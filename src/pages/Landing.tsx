@@ -7,10 +7,6 @@ import {
   Award,
   Shield,
   Smartphone,
-  Facebook,
-  Twitter,
-  Instagram,
-  Linkedin,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import heroImage from "@/assets/hero-bg.jpg";
@@ -76,6 +72,7 @@ const Landing = ({ onUserTypeSelect }: LandingProps) => {
           className="absolute inset-0 z-0 bg-cover bg-center"
           style={{ backgroundImage: `url(${heroImage})` }}
         />
+
         <div className="absolute inset-0 bg-black/40 z-0" />
         <div className="relative z-10 container mx-auto px-4 py-24 text-center">
           <motion.h1
@@ -154,7 +151,7 @@ const Landing = ({ onUserTypeSelect }: LandingProps) => {
           >
             <h3 className="text-3xl md:text-4xl font-bold text-green-900">
               <Typewriter
-                words={["Learn 📘", "Play 🎮", "Resolve ♻️", "Earn 🏆"]}
+                words={["Learn 📘", "Play 🎮", "Resolve ♻", "Earn 🏆"]}
                 loop={0}
                 cursor
                 cursorStyle="|"

@@ -210,23 +210,24 @@ const Learning = () => {
   };
 
   const handleStartTraining = (levelId: number, route?: string) => {
-    if (route) {
-      navigate(route);
-    } else {
-      toast({
-        title: "Starting Training Level",
-        description: `Redirecting to Level ${levelId} training module...`,
-      });
-    }
-  };
-
-  const handleStartCourse = (courseId: string) => {
-    setSelectedCourse(courseId);
+  if (route) {
+    navigate(route);
+  } else {
     toast({
-      title: "Course Starting Soon",
-      description: "Preparing your personalized learning experience...",
+      title: "Starting Training Level",
+      description: `Redirecting to Level ${levelId} training module...`,
     });
-  };
+  }
+};
+
+const handleStartCourse = (courseId: string) => {
+  setSelectedCourse(courseId);
+  toast({
+    title: "Course Starting Soon",
+    description: "Preparing your personalized learning experience...",
+  });
+};
+
 
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {

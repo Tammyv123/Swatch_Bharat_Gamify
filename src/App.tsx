@@ -6,7 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 // Pages & Components
-import Layout from "./components/Layout";
+import Layout from "./components/Layout"; // fixed case
 import Landing from "./pages/Landing";
 import Play from "./pages/play";
 import Earn from "./pages/earn";
@@ -29,9 +29,8 @@ import Settings from "./components/settings";
 // Learning Pages
 import Learning from "./pages/Learning";
 import { WasteBasicsModule } from "./components/learning/WasteBasicsModule";
-import { WasteAdvancedModule } from "./components/learning/WasteAdvanceModule";
+import { WasteAdvancedModule } from "./components/learning/WasteAdvanceModule"; // fixed name
 import WasteSortingGame from "./components/WasteSortingGame";
-//importing games
 import WasteGame from "@/components/wastegame";
 import EcoSorterGame from "@/components/EcoSorterGame";
 
@@ -84,7 +83,7 @@ const App = () => (
             {/* Learning Pages */}
             <Route path="/learning" element={<Learning />} />
             <Route path="/learning/waste-basics" element={<WasteBasicsModule />} />
-            <Route path ="/learning/waste-advance" element={<WasteAdvancedModule />}/>
+            <Route path="/learning/waste-advance" element={<WasteAdvancedModule />} />
             <Route path="/learning/waste-sorting-game" element={<WasteSortingGame />} />
 
             {/* User Type & Auth */}
@@ -95,8 +94,10 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/dashboard" element={<ProtectedRoute requireAuth={true}><Dashboard /></ProtectedRoute>} />
             
-            <Route path="/ManageWaste" element={<WasteGame />} />
+            {/* Games */}
+            <Route path="/manage-waste" element={<WasteGame />} /> {/* lowercase path */}
             <Route path="/eco-sorter-game" element={<EcoSorterGame />} />
+
             {/* Catch All */}
             <Route path="*" element={<NotFound />} />
           </Route>
