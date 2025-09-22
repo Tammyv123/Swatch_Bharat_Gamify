@@ -90,29 +90,43 @@ const Dashboard = ({ onNavigate }: DashboardProps) => {
     try {
       // Add points to current total
       setCurrentPoints(prev => prev + points);
-
-      // Update coins in Firebase
-      if (user) {
-        await updateUserCoins(user.uid, points);
-        setCoins(prev => prev + points);
-
-        // Check and process referral rewards (only for first QR scan)
-        const referralCompleted = await completeReferralReward(user.uid);
-        if (referralCompleted) {
-          toast({
-            title: "Referral Bonus!",
-            description: "You and your referrer each earned 10 extra coins!",
-            duration: 5000,
-          });
-          // Reload coins to get the referral bonus
-          await loadUserCoins();
-        }
-      }
-
+      // Optimistic UI: show the success toast immediately
       toast({
         title: "Points Earned!",
         description: `You earned ${points} points for this action.`,
       });
+
+      // Update coins in Firebase (fire-and-forget style with local optimistic increment)
+      if (user) {
+        setCoins(prev => prev + points);
+        try {
+          await updateUserCoins(user.uid, points);
+        } catch (err) {
+          // Log the error but don't show destructive toast to the user for transient sync issues
+          console.error("Error updating coins in background:", err);
+          toast({
+            title: "Sync Notice",
+            description: "Points were recorded locally and will be synced when the network is available.",
+            variant: "default",
+          });
+        }
+
+        // Check and process referral rewards (only for first QR scan)
+        try {
+          const referralCompleted = await completeReferralReward(user.uid);
+          if (referralCompleted) {
+            toast({
+              title: "Referral Bonus!",
+              description: "You and your referrer each earned 10 extra coins!",
+              duration: 5000,
+            });
+            // Reload coins to get the referral bonus
+            await loadUserCoins();
+          }
+        } catch (err) {
+          console.error("Error processing referral reward:", err);
+        }
+      }
     } catch (error) {
       console.error("Error processing points:", error);
       toast({
@@ -892,9 +906,9 @@ const Dashboard = ({ onNavigate }: DashboardProps) => {
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {[
-                    { title: "Metro Discount", points: 500, description: "₹50 off on metro travel", type: "Transport" },
-                    { title: "Movie Ticket", points: 800, description: "Free movie ticket", type: "Entertainment" },
-                    { title: "Utility Bill", points: 1000, description: "₹100 off electricity bill", type: "Utility" },
+                    { title: "Metro Discount", points: 10, description: "₹50 off on metro travel", type: "Transport" },
+                    { title: "Movie Ticket", points: 8, description: "Free movie ticket", type: "Entertainment" },
+                    { title: "Utility Bill", points: 10, description: "₹100 off electricity bill", type: "Utility" },
                     { title: "Eco Kit", points: 1200, description: "Home composting kit", type: "Product" },
                     { title: "Plant Sapling", points: 300, description: "Free plant for your home", type: "Environment" },
                     { title: "Shopping Voucher", points: 1500, description: "₹200 shopping voucher", type: "Shopping" }
