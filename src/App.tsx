@@ -39,7 +39,7 @@ import UserTypeSelection from "./pages/UserTypeSelection";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Auth from "./pages/Auth";
-import Dashboard from "./pages/Dashboard";
+import Dashboard from "./pages/Dashboard/CitizenDashboard";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 
 // Other Components

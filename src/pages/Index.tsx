@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import Landing from "./Landing";
 import Auth from "./Auth";
 import Training from "./Training";
-import Dashboard from "./Dashboard";
+import Dashboard from "./Dashboard/CitizenDashboard";
 import Navbar from "@/components/Navbar";
 import UserProfile from "@/components/UserProfile";
 import Certifications from "@/components/Certifications";
